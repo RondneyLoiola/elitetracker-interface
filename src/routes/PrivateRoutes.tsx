@@ -1,4 +1,6 @@
 import { Navigate } from 'react-router';
+import AppContainer from '../Components/App-container';
+import SideBar from '../Components/Siderbar';
 import { userLocalStorageKey } from '../hooks/useUser';
 
 type PrivateRoutePropes = {
@@ -12,5 +14,10 @@ export function PrivateRoute({ component }: PrivateRoutePropes) {
 		return <Navigate to="/entrar" />;
 	}
 
-	return <>{component}</>;
+	return (
+		<AppContainer>
+			<SideBar />
+			{component}
+		</AppContainer>
+	);
 }
