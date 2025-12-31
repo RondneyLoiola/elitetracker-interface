@@ -48,9 +48,8 @@ function Focus() {
 	const [timers, setTimers] = useState<Timers>({ focus: 0, rest: 0 });
 	const [timerState, setTimerState] = useState(TimerState.PAUSED);
 	const [timeFrom, setTimeFrom] = useState<Date | null>(null);
-	const [focusMetrics, setFocusMetrics] = useState<FocusMetrics>(
-		{} as FocusMetrics,
-	);
+
+	const [focusMetrics, setFocusMetrics] = useState<FocusMetrics[]>([]);
 
 	const [currentMonth, setCurrentMonth] = useState<dayjs.Dayjs>(
 		dayjs().startOf('month'),
@@ -182,10 +181,7 @@ function Focus() {
 			},
 		});
 
-		// a api retorna um array de FocusMetrics
-		const [metrics] = data; //pega o primeiro item, const metrics = data[0]
-
-		setFocusMetrics(metrics || ({} as FocusMetrics)); //se metrics for undefined, manda um objeto vazio
+		setFocusMetrics(data); //se metrics for undefined, manda um objeto vazio
 	}
 
 	async function loadFocusTimes(currentDate: string) {
@@ -200,7 +196,7 @@ function Focus() {
 		setFocusTimes(data);
 	}
 
-	const metricsInfo = useMemo(() => {
+	const metricsInfoByDay = useMemo(() => {
 		const timesMetrics = focusTimes.map((item) => ({
 			timeFrom: dayjs(item.timeFrom),
 			timeTo: dayjs(item.timeTo),
@@ -221,6 +217,27 @@ function Focus() {
 			totalTimeInMinutes,
 		};
 	}, [focusTimes]);
+
+	const metricsInfoByMonth = useMemo(() => {
+		const completedDates: string[] = [];
+		let counter: number = 0;
+
+		if (focusMetrics.length) {
+			focusMetrics.forEach((item) => {
+				const date = dayjs(`${item._id[0]}-${item._id[1]}-${item._id[2]}`)
+					.startOf('day')
+					.toISOString();
+
+				completedDates.push(date);
+				counter += item.count;
+			});
+		}
+
+		return {
+			completedDates,
+			counter,
+		};
+	}, [focusMetrics]);
 
 	async function handleSelectMonth(date: Date | string) {
 		const dateObject = typeof date === 'string' ? new Date(date) : date;
@@ -307,9 +324,12 @@ function Focus() {
 				<h2>Estatísticas</h2>
 
 				<div className={styles.infoContainer}>
-					<Info value={String(focusMetrics.count || 0)} label="Ciclos Totais" />
 					<Info
-						value={`${metricsInfo.totalTimeInMinutes} minutos`}
+						value={String(metricsInfoByMonth.counter)}
+						label="Ciclos Totais"
+					/>
+					<Info
+						value={`${metricsInfoByDay.totalTimeInMinutes} minutos`}
 						label="Tempo total de Foco"
 					/>
 				</div>
@@ -325,16 +345,15 @@ function Focus() {
 						onPreviousMonth={handleSelectMonth}
 						renderDay={(date) => {
 							const day = dayjs(date).date();
-							// const isSameDate = metrics?.completedDates?.some(
-							// 	(item) => dayjs(item).isSame(dayjs(date)),
-							// 	verifica se tem alguma data de completedDates que seja igual ao dia do calendário
-							// );
+							const isSameDate = metricsInfoByMonth.completedDates.some(
+								(item) => dayjs(item).isSame(dayjs(date)),
+							);
 							return (
 								<Indicator
 									size={10}
 									color="var(--info"
 									offset={-2}
-									//disabled={!isSameDate}
+									disabled={!isSameDate}
 								>
 									<div>{day}</div>
 								</Indicator>
